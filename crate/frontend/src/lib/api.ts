@@ -122,6 +122,10 @@ export async function getRecord(discogs_id: number) {
   return fetchApi(`/collection/record/${discogs_id}`);
 }
 
+export async function deleteRecord(discogs_id: number): Promise<void> {
+  await fetchApi(`/collection/record/${discogs_id}`, { method: "DELETE" });
+}
+
 export async function importCsv(file: File, quick = true) {
   const formData = new FormData();
   formData.append("file", file);

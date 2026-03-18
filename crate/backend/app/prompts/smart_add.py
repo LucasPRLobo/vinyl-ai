@@ -48,13 +48,15 @@ what is explicitly in the source data. Mark the source of each piece of informat
   "artists": [
     {{
       "name": "string — canonical name",
-      "role": "performer | producer | engineer | writer",
+      "role": "main_artist | performer | producer | engineer | writer",
+      "artist_type": "person | group — is this an individual or a band/group?",
       "instrument": "string or null — ONLY if explicitly stated in source data",
       "tracks": "string or null — which tracks, e.g. 'A1, A2' or 'all'",
       "musicbrainz_id": "string or null",
       "origin_city": "string or null — ONLY if in source data",
+      "member_of": "string or null — if this person is a member of a band that is also the main artist, put the band name here",
       "source": "discogs | musicbrainz | both",
-      "confidence": "verified — data explicitly in source | inferred — deduced from available data"
+      "confidence": "verified | inferred"
     }}
   ],
   "labels": [

@@ -98,9 +98,14 @@ export default function GroupsPage() {
                 <p className="text-sm text-crate-muted">
                   {g.member_count} member{g.member_count !== 1 ? "s" : ""} &middot; {g.role}
                 </p>
-                <Link href={`/groups/graph?id=${g.id}`} className="text-xs text-crate-accent hover:underline">
-                  View group graph
-                </Link>
+                <div className="flex gap-3 mt-1">
+                  <Link href={`/groups/insights?id=${g.id}`} className="text-xs text-crate-accent hover:underline">
+                    What connects us?
+                  </Link>
+                  <Link href={`/groups/graph?id=${g.id}`} className="text-xs text-crate-accent hover:underline">
+                    Group graph
+                  </Link>
+                </div>
               </div>
               <div className="text-right">
                 <p className="text-xs text-crate-muted">Invite code</p>

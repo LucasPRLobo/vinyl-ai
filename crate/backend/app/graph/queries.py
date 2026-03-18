@@ -171,9 +171,10 @@ def merge_track(tx, *, album_discogs_id: int, position: str, title: str, **props
 
 
 def link_artist_to_album(tx, *, artist_name: str, album_discogs_id: int, role: str, **props):
-    """Link an artist to an album with a specific role (PERFORMED_ON, PRODUCED, ENGINEERED, WROTE)."""
+    """Link an artist to an album with a specific role."""
     rel_type = {
         "performer": "PERFORMED_ON",
+        "main_artist": "MAIN_ARTIST",
         "producer": "PRODUCED",
         "engineer": "ENGINEERED",
         "writer": "WROTE",
@@ -189,6 +190,19 @@ def link_artist_to_album(tx, *, artist_name: str, album_discogs_id: int, role: s
         artist_name=artist_name,
         album_discogs_id=album_discogs_id,
         props=props,
+    )
+
+
+def link_member_of_band(tx, *, member_name: str, band_name: str):
+    """Link an artist as a member of a band/group."""
+    tx.run(
+        """
+        MATCH (member:Artist {name: $member_name})
+        MATCH (band:Artist {name: $band_name})
+        MERGE (member)-[:MEMBER_OF]->(band)
+        """,
+        member_name=member_name,
+        band_name=band_name,
     )
 
 
