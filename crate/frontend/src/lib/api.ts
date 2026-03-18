@@ -122,6 +122,10 @@ export async function getRecord(discogs_id: number) {
   return fetchApi(`/collection/record/${discogs_id}`);
 }
 
+export async function deleteRecord(discogs_id: number): Promise<void> {
+  await fetchApi(`/collection/record/${discogs_id}`, { method: "DELETE" });
+}
+
 export async function importCsv(file: File, quick = true) {
   const formData = new FormData();
   formData.append("file", file);
@@ -156,6 +160,10 @@ export async function getHubs(label = "Artist", limit = 15) {
 
 export async function getFullGraph(): Promise<GraphData> {
   return fetchApi("/graph/full");
+}
+
+export async function getGroupGraph(groupId: string): Promise<any> {
+  return fetchApi(`/graph/group/${groupId}`);
 }
 
 export async function explorNode(
