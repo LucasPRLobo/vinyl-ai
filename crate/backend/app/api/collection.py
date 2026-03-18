@@ -127,8 +127,9 @@ async def add_record(
             connections=result.connections_found,
             group_ids=group_ids if group_ids else None,
         )
-    except Exception:
-        pass  # Feed event failure shouldn't block the add
+    except Exception as feed_err:
+        import logging
+        logging.getLogger(__name__).error(f"Feed event creation failed: {feed_err}", exc_info=True)
 
     return AddResponse(
         album_title=result.album_title,
@@ -169,6 +170,7 @@ def get_record(discogs_id: int):
 async def import_csv(
     file: UploadFile = File(...),
     uid: str = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db),
     quick: bool = True,
 ):
     """Import a Discogs collection from CSV export."""
@@ -191,6 +193,28 @@ async def import_csv(
         )
     finally:
         Path(tmp_path).unlink(missing_ok=True)
+
+    # Create a single feed event summarizing the import
+    try:
+        group_ids = await get_user_group_ids(db, uid)
+        driver = get_neo4j_driver()
+        with driver.session() as neo_session:
+            user_rec = neo_session.run("MATCH (u:User {id: $uid}) RETURN u.name AS name", uid=uid).single()
+        user_name = user_rec["name"] if user_rec else "Someone"
+
+        await create_record_added_event(
+            db=db,
+            user_id=uid,
+            user_name=user_name,
+            album_title=f"{summary['imported']} records via CSV import",
+            discogs_id=0,
+            artists_added=0,
+            connections=[],
+            group_ids=group_ids if group_ids else None,
+        )
+    except Exception as feed_err:
+        import logging
+        logging.getLogger(__name__).error(f"Feed event for CSV import failed: {feed_err}", exc_info=True)
 
     return ImportCSVResponse(**summary)
 

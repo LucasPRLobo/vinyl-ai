@@ -92,10 +92,15 @@ export default function GroupsPage() {
           {groups.map((g) => (
             <div key={g.id} className="border border-crate-border rounded-lg p-4 bg-crate-surface flex justify-between items-center">
               <div>
-                <p className="font-medium">{g.name}</p>
+                <Link href={`/groups/graph?id=${g.id}`} className="font-medium hover:text-crate-accent">
+                  {g.name}
+                </Link>
                 <p className="text-sm text-crate-muted">
                   {g.member_count} member{g.member_count !== 1 ? "s" : ""} &middot; {g.role}
                 </p>
+                <Link href={`/groups/graph?id=${g.id}`} className="text-xs text-crate-accent hover:underline">
+                  View group graph
+                </Link>
               </div>
               <div className="text-right">
                 <p className="text-xs text-crate-muted">Invite code</p>

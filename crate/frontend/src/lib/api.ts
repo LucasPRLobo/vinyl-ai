@@ -158,6 +158,10 @@ export async function getFullGraph(): Promise<GraphData> {
   return fetchApi("/graph/full");
 }
 
+export async function getGroupGraph(groupId: string): Promise<any> {
+  return fetchApi(`/graph/group/${groupId}`);
+}
+
 export async function explorNode(
   node_label: string,
   node_name: string
