@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCollection, getStats } from "@/lib/api";
+import { getCollection, getStats, deleteRecord } from "@/lib/api";
 import type { CollectionItem, CollectionStats } from "@/lib/types";
 import { useStore } from "@/lib/store";
 import Link from "next/link";
@@ -105,17 +105,36 @@ export default function CollectionPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {collection.map((item) => (
-            <Link
+            <div
               key={item.discogs_id}
-              href={`/record/${item.discogs_id}`}
-              className="border border-crate-border rounded-lg p-4 hover:border-crate-accent transition-colors bg-crate-surface"
+              className="border border-crate-border rounded-lg p-4 hover:border-crate-accent transition-colors bg-crate-surface relative group"
             >
-              <p className="font-medium truncate">{item.title}</p>
-              <p className="text-sm text-crate-muted truncate">
-                {item.artists.join(", ")}
-              </p>
-              <p className="text-xs text-crate-muted mt-1">{item.year || "Unknown year"}</p>
-            </Link>
+              <Link href={`/record/${item.discogs_id}`}>
+                <p className="font-medium truncate">{item.title}</p>
+                <p className="text-sm text-crate-muted truncate">
+                  {item.artists.join(", ")}
+                </p>
+                <p className="text-xs text-crate-muted mt-1">{item.year || "Unknown year"}</p>
+              </Link>
+              <button
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!confirm(`Remove "${item.title}" from your collection?`)) return;
+                  try {
+                    await deleteRecord(item.discogs_id);
+                    setCollection((prev) => prev.filter((c) => c.discogs_id !== item.discogs_id));
+                    if (stats) setStats({ ...stats, total_albums: stats.total_albums - 1 });
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
+                className="absolute top-2 right-2 text-crate-muted hover:text-red-400 text-lg leading-none px-1"
+                title="Remove from collection"
+              >
+                &times;
+              </button>
+            </div>
           ))}
         </div>
       )}

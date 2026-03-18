@@ -127,8 +127,9 @@ async def add_record(
             connections=result.connections_found,
             group_ids=group_ids if group_ids else None,
         )
-    except Exception:
-        pass  # Feed event failure shouldn't block the add
+    except Exception as feed_err:
+        import logging
+        logging.getLogger(__name__).error(f"Feed event creation failed: {feed_err}", exc_info=True)
 
     return AddResponse(
         album_title=result.album_title,
@@ -165,10 +166,35 @@ def get_record(discogs_id: int):
     return {"discogs_id": discogs_id, "connections": connections, "context": context}
 
 
+@router.delete("/record/{discogs_id}")
+def delete_record(discogs_id: int, uid: str = Depends(get_user_id)):
+    """Remove a record from the user's collection. Deletes the OWNS edge.
+    The album and its connections stay in the graph (other users may own it)."""
+    driver = get_neo4j_driver()
+    with driver.session() as session:
+        result = session.run(
+            """
+            MATCH (u:User {id: $uid})-[r:OWNS]->(p:Pressing {discogs_id: $did})
+            DELETE r
+            RETURN count(r) AS deleted
+            """,
+            uid=uid,
+            did=discogs_id,
+        )
+        record = result.single()
+        deleted = record["deleted"] if record else 0
+
+    if deleted == 0:
+        raise HTTPException(status_code=404, detail="Record not in your collection")
+
+    return {"discogs_id": discogs_id, "deleted": True}
+
+
 @router.post("/import/csv", response_model=ImportCSVResponse)
 async def import_csv(
     file: UploadFile = File(...),
     uid: str = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db),
     quick: bool = True,
 ):
     """Import a Discogs collection from CSV export."""
@@ -191,6 +217,51 @@ async def import_csv(
         )
     finally:
         Path(tmp_path).unlink(missing_ok=True)
+
+    # Create a feed event with the list of imported albums
+    try:
+        group_ids = await get_user_group_ids(db, uid)
+        driver = get_neo4j_driver()
+        with driver.session() as neo_session:
+            user_rec = neo_session.run("MATCH (u:User {id: $uid}) RETURN u.name AS name", uid=uid).single()
+        user_name = user_rec["name"] if user_rec else "Someone"
+
+        album_list = [f"{r.artist} - {r.title}" for r in records[:50]]  # Cap at 50 for storage
+        body = f"{user_name} imported {summary['imported']} records: " + ", ".join(album_list[:10])
+        if len(album_list) > 10:
+            body += f" and {len(album_list) - 10} more."
+
+        import uuid as _uuid
+        from app.models.feed_event import FeedEvent
+
+        metadata = {"albums": album_list, "count": summary["imported"]}
+
+        if group_ids:
+            for gid in group_ids:
+                event = FeedEvent(
+                    user_id=_uuid.UUID(uid),
+                    group_id=_uuid.UUID(gid),
+                    event_type="csv_import",
+                    discogs_id=None,
+                    title=f"{user_name} imported {summary['imported']} records",
+                    body=body,
+                    metadata_json=metadata,
+                )
+                db.add(event)
+        else:
+            event = FeedEvent(
+                user_id=_uuid.UUID(uid),
+                event_type="csv_import",
+                discogs_id=None,
+                title=f"{user_name} imported {summary['imported']} records",
+                body=body,
+                metadata_json=metadata,
+            )
+            db.add(event)
+        await db.commit()
+    except Exception as feed_err:
+        import logging
+        logging.getLogger(__name__).error(f"Feed event for CSV import failed: {feed_err}", exc_info=True)
 
     return ImportCSVResponse(**summary)
 

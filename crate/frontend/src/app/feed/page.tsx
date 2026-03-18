@@ -30,27 +30,57 @@ export default function FeedPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {events.map((event) => (
-            <div key={event.id} className="border border-crate-border rounded-lg p-4 bg-crate-surface">
-              <div className="flex justify-between items-start">
-                <p className="font-medium text-sm">{event.title}</p>
-                <p className="text-xs text-crate-muted shrink-0 ml-4">
-                  {new Date(event.created_at).toLocaleDateString()}
-                </p>
+          {events.map((event) => {
+            const albums: string[] = (event.metadata_json?.albums as string[]) || [];
+
+            return (
+              <div key={event.id} className="border border-crate-border rounded-lg p-4 bg-crate-surface">
+                <div className="flex justify-between items-start">
+                  <p className="font-medium text-sm">{event.title}</p>
+                  <p className="text-xs text-crate-muted shrink-0 ml-4">
+                    {new Date(event.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+
+                {/* Single record add */}
+                {event.event_type === "record_added" && event.body && (
+                  <p className="text-sm text-crate-muted mt-1">{event.body}</p>
+                )}
+
+                {/* CSV import — show album list */}
+                {event.event_type === "csv_import" && albums.length > 0 && (
+                  <div className="mt-2">
+                    <div className="flex flex-wrap gap-1">
+                      {albums.slice(0, 15).map((a, i) => (
+                        <span key={i} className="text-xs px-2 py-0.5 rounded bg-crate-bg border border-crate-border">
+                          {a}
+                        </span>
+                      ))}
+                      {albums.length > 15 && (
+                        <span className="text-xs text-crate-muted px-2 py-0.5">
+                          +{albums.length - 15} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Fallback body for other event types */}
+                {event.event_type !== "record_added" && event.event_type !== "csv_import" && event.body && (
+                  <p className="text-sm text-crate-muted mt-1">{event.body}</p>
+                )}
+
+                {event.discogs_id != null && event.discogs_id > 0 && (
+                  <Link
+                    href={`/record/${event.discogs_id}`}
+                    className="text-xs text-crate-accent hover:underline mt-2 inline-block"
+                  >
+                    View record
+                  </Link>
+                )}
               </div>
-              {event.body && (
-                <p className="text-sm text-crate-muted mt-1">{event.body}</p>
-              )}
-              {event.discogs_id && (
-                <Link
-                  href={`/record/${event.discogs_id}`}
-                  className="text-xs text-crate-accent hover:underline mt-2 inline-block"
-                >
-                  View record
-                </Link>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

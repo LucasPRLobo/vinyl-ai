@@ -2,14 +2,15 @@
 
 
 def group_collection_overlap(tx, *, group_id: str):
-    """Albums owned by multiple members."""
+    """Albums owned by multiple members. Merges different pressings by title."""
     result = tx.run(
         """
         MATCH (u:User)-[:MEMBER_OF_GROUP]->(g:Group {id: $group_id})
         MATCH (u)-[:OWNS]->(p:Pressing)<-[:HAS_PRESSING]-(a:Album)
-        WITH a, collect(DISTINCT u.name) AS owners, count(DISTINCT u) AS owner_count
+        WITH a.title AS title, collect(DISTINCT a.discogs_id) AS discogs_ids,
+             collect(DISTINCT u.name) AS owners, count(DISTINCT u) AS owner_count
         WHERE owner_count > 1
-        RETURN a.title AS title, a.discogs_id AS discogs_id, owners, owner_count
+        RETURN title, discogs_ids[0] AS discogs_id, owners, owner_count
         ORDER BY owner_count DESC
         LIMIT 50
         """,

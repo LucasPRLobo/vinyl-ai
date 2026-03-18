@@ -36,6 +36,8 @@ def ingest_record(driver, *, discogs_id: int, synthesized_data: dict, user_id: s
             artist_props = {}
             if artist.get("musicbrainz_id"):
                 artist_props["musicbrainz_id"] = artist["musicbrainz_id"]
+            if artist.get("artist_type"):
+                artist_props["artist_type"] = artist["artist_type"]
 
             session.execute_write(
                 queries.merge_artist,
@@ -58,6 +60,14 @@ def ingest_record(driver, *, discogs_id: int, synthesized_data: dict, user_id: s
                 role=role,
                 **link_props,
             )
+
+            # Link band membership if specified
+            if artist.get("member_of"):
+                session.execute_write(
+                    queries.link_member_of_band,
+                    member_name=artist["name"],
+                    band_name=artist["member_of"],
+                )
 
             # Link artist to instrument if specified
             if artist.get("instrument"):

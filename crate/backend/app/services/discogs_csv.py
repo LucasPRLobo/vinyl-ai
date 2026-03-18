@@ -136,7 +136,7 @@ def import_collection_from_csv(
                         "notes": "",
                     },
                     "artists": [
-                        {"name": record.artist, "role": "performer", "instrument": None}
+                        {"name": record.artist, "role": "main_artist", "instrument": None}
                     ],
                     "labels": [{"name": record.label}] if record.label else [],
                     "genres": [],

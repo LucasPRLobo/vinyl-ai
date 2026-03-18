@@ -35,3 +35,6 @@ docker-compose.override.yml
 
 # User data
 *.csv
+
+# Downloads
+*.deb
